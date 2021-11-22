@@ -28,6 +28,51 @@ public class Main {
         // [-128; 128]
         byte[] text = Files.readAllBytes(Paths.get("Text"));
         // [128; 255]
+        double[] textStatistic = getByteStatistics(text);
+
+        String codeName = countDiffAndGetEncodingName(textStatistic, freqByEncoding);
+
+        System.out.println(Arrays.stream(textStatistic).reduce(Double::sum));
+        System.out.println(codeName);
+
+        convertBytes(text, getNewByteList(freqByEncoding.get(codeName), textStatistic));
+
+
+        System.out.println(new String(text, Charset.forName(codeName)));
+        try(OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream("Output", false), Charset.forName(codeName))) {
+            writer.write(new String(text, Charset.forName(codeName)));
+        }
+    }
+
+    private static void convertBytes(byte[] text, HashMap<Byte, Byte> newBytes) {
+        for (int i = 0; i < text.length; i++) {
+            if (text[i] < 0 && newBytes.containsKey((byte) (128 + text[i]))) {
+                text[i] = (byte) (newBytes.get((byte) (128 + text[i])) - 128);
+            }
+        }
+    }
+
+    private static String countDiffAndGetEncodingName(double[] textStatistic, HashMap<String, double[]> freqByEncoding) {
+        double min = Double.MAX_VALUE;
+        String codeName = "cp1251";
+
+        for (Map.Entry<String, double[]> codes : freqByEncoding.entrySet()) {
+            double res = 0;
+
+            for (int i = 0; i < textStatistic.length; i++) {
+                res += Math.pow(Math.abs(codes.getValue()[i] - textStatistic[i]), 2);
+            }
+
+            if (min > res) {
+                min = res;
+                codeName = codes.getKey();
+            }
+        }
+
+        return codeName;
+    }
+
+    private static double[] getByteStatistics(byte[] text) {
         double[] textStatistic = new double[128];
         int counter = 0;
 
@@ -39,43 +84,11 @@ public class Main {
         }
 
         for(int i = 0; i < textStatistic.length; i++) {
-            double res = Math.ceil(textStatistic[i] * 10000 / counter) / 100;
+            double res = textStatistic[i] * 100 / counter;
             textStatistic[i] = res;
         }
 
-        HashMap<String, Double> sum = new HashMap<>();
-        double min = Double.MAX_VALUE;
-        String codeName = "cp1251";
-
-        for (Map.Entry<String, double[]> codes : freqByEncoding.entrySet()) {
-            double res = 0;
-
-            for (int i = 0; i < textStatistic.length; i++) {
-                res += Math.pow(Math.abs(codes.getValue()[i] - textStatistic[i]), 2);
-            }
-
-            sum.put(codes.getKey(), res);
-            if (min > res) {
-                min = res;
-                codeName = codes.getKey();
-            }
-        }
-
-        System.out.println(Arrays.stream(textStatistic).reduce(Double::sum));
-        System.out.println(codeName);
-
-        HashMap<Byte, Byte> newBytes = getNewByteList(freqByEncoding.get(codeName), textStatistic);
-
-        for (int i = 0; i < text.length; i++) {
-            if (text[i] < 0 && newBytes.containsKey((byte) (128 + text[i]))) {
-                text[i] = (byte) (newBytes.get((byte) (128 + text[i])) - 128);
-            }
-        }
-
-        System.out.println(new String(text, Charset.forName(codeName)));
-        try(OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream("Output", false))) {
-            writer.write(new String(text, Charset.forName(codeName)));
-        }
+        return textStatistic;
     }
 
     private static HashMap<Byte, Byte> getNewByteList(double[] codeFreq, double[] textStatistic) {
@@ -95,7 +108,7 @@ public class Main {
                     continue;
                 }
 
-                double div = Math.abs(freq - codeFreq[b]);
+                double div = Math.pow(Math.abs(freq - codeFreq[b]), 2);
 
                 if (div < minDiv) {
                     minDiv = div;
