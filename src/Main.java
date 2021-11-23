@@ -1,15 +1,12 @@
 import java.io.*;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.function.DoubleBinaryOperator;
 
 public class Main {
     static double[] freq = new double[65];
     public static void main(String[] args) throws IOException {
+        // Generate custom frequency file from frequencyExampleText
         FrequencyGenerator.generateFrequency("FrequencyExampleText", "frequency");
         Scanner scan = new Scanner(new File("frequency"));
 
@@ -17,12 +14,14 @@ public class Main {
             freq[i] = scan.nextDouble();
         }
 
-        HashMap<String, double[]> freqByEncoding = new HashMap<>();
+        // Generate byte freq for each encoding table
+        HashMap<String, DisplayDependEncoding> freqByEncoding = new HashMap<>();
         scan = new Scanner(new File("codes"));
 
         while (scan.hasNext()) {
             String code = scan.nextLine();
-            freqByEncoding.put(code, getFreqForEncoding(code));
+            DisplayDependEncoding tableFreq = getFreqForEncoding(code);
+            freqByEncoding.put(code, tableFreq);
         }
 
         // [-128; 128]
@@ -30,38 +29,40 @@ public class Main {
         // [128; 255]
         double[] textStatistic = getByteStatistics(text);
 
+        // Gets source text encoding name
         String codeName = countDiffAndGetEncodingName(textStatistic, freqByEncoding);
 
-        System.out.println(Arrays.stream(textStatistic).reduce(Double::sum));
         System.out.println(codeName);
 
-        convertBytes(text, getNewByteList(freqByEncoding.get(codeName), textStatistic));
+        Map<Byte, Character> display = freqByEncoding.get(codeName).getDisplay();
+        StringBuilder res = new StringBuilder();
 
-
-        System.out.println(new String(text, Charset.forName(codeName)));
-        try(OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream("Output", false), Charset.forName(codeName))) {
-            writer.write(new String(text, Charset.forName(codeName)));
-        }
-    }
-
-    private static void convertBytes(byte[] text, HashMap<Byte, Byte> newBytes) {
-        for (int i = 0; i < text.length; i++) {
-            if (text[i] < 0 && newBytes.containsKey((byte) (128 + text[i]))) {
-                text[i] = (byte) (newBytes.get((byte) (128 + text[i])) - 128);
+        for (byte b : text) {
+            if (b < 0 && display.containsKey(b)) {
+                res.append(display.get(b).charValue());
+            } else {
+                byte[] arr = new byte[1];
+                arr[0] = b;
+                res.append(new String(arr));
             }
         }
+
+        System.out.println(res);
+
     }
 
-    private static String countDiffAndGetEncodingName(double[] textStatistic, HashMap<String, double[]> freqByEncoding) {
+    private static String countDiffAndGetEncodingName(double[] textStatistic, HashMap<String, DisplayDependEncoding> freqByEncoding) {
         double min = Double.MAX_VALUE;
         String codeName = "cp1251";
 
-        for (Map.Entry<String, double[]> codes : freqByEncoding.entrySet()) {
+        for (Map.Entry<String, DisplayDependEncoding> codes : freqByEncoding.entrySet()) {
             double res = 0;
 
             for (int i = 0; i < textStatistic.length; i++) {
-                res += Math.pow(Math.abs(codes.getValue()[i] - textStatistic[i]), 2);
+                res += Math.pow(Math.abs(codes.getValue().getAbcTable()[i] - textStatistic[i]), 2);
             }
+
+            System.out.println(codes.getKey() + " : " + res);
 
             if (min > res) {
                 min = res;
@@ -91,47 +92,37 @@ public class Main {
         return textStatistic;
     }
 
-    private static HashMap<Byte, Byte> getNewByteList(double[] codeFreq, double[] textStatistic) {
-        HashMap<Byte, Byte> changedBytes = new HashMap<>(65);
-
-        for (int i = 0; i < textStatistic.length; i++) {
-            if (textStatistic[i] == 0) {
-                continue;
-            }
-
-            double freq = textStatistic[i];
-            double minDiv = 100;
-            byte index = 0;
-
-            for (int b = 0; b < codeFreq.length; b++) {
-                if (codeFreq[b] == 0) {
-                    continue;
-                }
-
-                double div = Math.pow(Math.abs(freq - codeFreq[b]), 2);
-
-                if (div < minDiv) {
-                    minDiv = div;
-                    index = (byte) b;
-                }
-            }
-
-            changedBytes.put((byte) i, index);
-        }
-
-        return changedBytes;
-    }
-
-    private static double[] getFreqForEncoding(String encodingFileName) throws IOException {
+    private static DisplayDependEncoding getFreqForEncoding(String encodingFileName) throws IOException {
         byte[] abcTable = Files.readAllBytes(Paths.get(encodingFileName));
         double[] freqStatistic = new double[128];
+        Map<Byte, Character> display = new HashMap<>();
+        String abc = "ҐЄЇІіґєїАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЮЯабвгдежзийклмнопрстуфхцчшщьюя";
 
         for (int i = 0; i < abcTable.length; i++) {
             if (abcTable[i] < 0) {
                 freqStatistic[abcTable[i] + 128] = freq[i];
+                display.put(abcTable[i], abc.charAt(i));
             }
         }
 
+        return new DisplayDependEncoding(freqStatistic, display);
+    }
+}
+
+class DisplayDependEncoding {
+    private final double[] freqStatistic;
+    private final Map<Byte, Character> display;
+
+    public DisplayDependEncoding(double[] freqStatistic, Map<Byte, Character> display) {
+        this.freqStatistic = freqStatistic;
+        this.display = display;
+    }
+
+    public double[] getAbcTable() {
         return freqStatistic;
+    }
+
+    public Map<Byte, Character> getDisplay() {
+        return display;
     }
 }
