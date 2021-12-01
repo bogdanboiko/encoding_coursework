@@ -78,11 +78,11 @@ public class Main {
         try {
             int pickedResult = Integer.parseInt(scan.nextLine());
 
-            if (pickedResult > 3 || pickedResult < 0) {
+            if (pickedResult > 3 || pickedResult < 1) {
                 return;
             }
 
-            saveResultToFile(decodedResults[0]);
+            saveResultToFile(decodedResults[pickedResult - 1]);
         } catch (NumberFormatException ignored) {
         }
     }
