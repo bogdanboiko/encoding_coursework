@@ -74,19 +74,16 @@ public class Main {
 
         scan = new Scanner(System.in);
         System.out.println("If you want to save decoded text, print one of given variants(1, 2, 3) or any symbol if you just want to exit");
-        String variant = scan.nextLine();
 
-        switch (variant) {
-            case "1":
-                saveResultToFile(decodedResults[0]);
-                break;
-            case "2":
-                saveResultToFile(decodedResults[1]);
-                break;
-            case "3":
-                saveResultToFile(decodedResults[2]);
-                break;
-            default: break;
+        try {
+            int pickedResult = Integer.parseInt(scan.nextLine());
+
+            if (pickedResult > 3 || pickedResult < 0) {
+                return;
+            }
+
+            saveResultToFile(decodedResults[0]);
+        } catch (NumberFormatException ignored) {
         }
     }
 
