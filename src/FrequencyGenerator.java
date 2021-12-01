@@ -34,7 +34,6 @@ public class FrequencyGenerator {
 
     private static void saveFreqToFile(double[] array, String filename, int counter) throws FrequencyGenerationException {
         try (PrintWriter writer = new PrintWriter(filename)) {
-
             for (int i = 0; i < array.length; i++) {
                 if (isInRange(128 + i)) {
                     double res = array[i] * 100 / counter;

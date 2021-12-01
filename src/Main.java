@@ -1,6 +1,7 @@
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.OpenOption;
 import java.nio.file.Paths;
 import java.util.*;
 
@@ -50,7 +51,7 @@ public class Main {
             try {
                 tableFreq = getFreqForEncoding(code);
             } catch (IOException e) {
-                System.out.println("Can't find or access to " + code + "file with encoding abc");
+                System.out.println("Can't find or access to " + code + " file with encoding abc");
                 continue;
             }
 
@@ -62,11 +63,44 @@ public class Main {
         double[] textStatistic = getByteStatistics(text);
 
         // Gets source text encoding name
-        String codeName = countDiffAndGetEncodingName(textStatistic, freqByEncoding);
+        String[] codeNames = countDiffAndGetEncodingName(textStatistic, freqByEncoding);
+        String[] decodedResults = new String[3];
 
-        System.out.println(codeName);
+        for (int i = 0; i < codeNames.length; i++) {
+            System.out.println(i + 1 + ") " + codeNames[i]);
+            decodedResults[i] = decodeInputText(text, freqByEncoding.get(codeNames[i]).getDisplay());
+            System.out.println(decodedResults[i]);
+        }
 
-        Map<Byte, Character> display = freqByEncoding.get(codeName).getDisplay();
+        scan = new Scanner(System.in);
+        System.out.println("If you want to save decoded text, print one of given variants(1, 2, 3) or any symbol if you just want to exit");
+        String variant = scan.nextLine();
+
+        switch (variant) {
+            case "1":
+                saveResultToFile(decodedResults[0]);
+                break;
+            case "2":
+                saveResultToFile(decodedResults[1]);
+                break;
+            case "3":
+                saveResultToFile(decodedResults[2]);
+                break;
+            default: break;
+        }
+    }
+
+    private static void saveResultToFile(String result) {
+        File decodedTextFile = new File("decodedText");
+        try {
+            decodedTextFile.createNewFile();
+            Files.write(decodedTextFile.toPath(), result.getBytes(StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            System.out.println("Failed to create file " + decodedTextFile.getPath() + " or write data to it");
+        }
+    }
+
+    private static String decodeInputText(byte[] text, Map<Byte, Character> display) {
         StringBuilder res = new StringBuilder();
 
         for (byte b : text) {
@@ -81,7 +115,7 @@ public class Main {
             res.append(symbol);
         }
 
-        System.out.println(res);
+        return res.toString();
     }
 
     private static File generateFrequencyFromExampleText() {
@@ -98,9 +132,9 @@ public class Main {
         return frequency;
     }
 
-    private static String countDiffAndGetEncodingName(double[] textStatistic, HashMap<String, OutputDependEncoding> freqByEncoding) {
-        double min = Double.MAX_VALUE;
-        String codeName = "cp1251";
+    private static String[] countDiffAndGetEncodingName(double[] textStatistic, HashMap<String, OutputDependEncoding> freqByEncoding) {
+        double firstMin = Double.MAX_VALUE, secondMin = Double.MAX_VALUE, thirdMin = Double.MAX_VALUE;
+        String[] names = new String[3];
 
         for (Map.Entry<String, OutputDependEncoding> codes : freqByEncoding.entrySet()) {
             double res = 0;
@@ -111,13 +145,25 @@ public class Main {
 
             System.out.println(codes.getKey() + " : " + res);
 
-            if (min > res) {
-                min = res;
-                codeName = codes.getKey();
+            if (res <= firstMin) {
+                thirdMin = secondMin;
+                names[2] = names[1];
+                secondMin = firstMin;
+                names[1] = names[0];
+                firstMin = res;
+                names[0] = codes.getKey();
+            } else if (res <= secondMin) {
+                thirdMin = secondMin;
+                names[2] = names[1];
+                secondMin = res;
+                names[1] = codes.getKey();
+            } else if (res <= thirdMin){
+                thirdMin = res;
+                names[2] = codes.getKey();
             }
         }
 
-        return codeName;
+        return names;
     }
 
     private static double[] getByteStatistics(byte[] text) {
