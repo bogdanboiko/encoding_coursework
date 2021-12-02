@@ -1,10 +1,10 @@
 import java.util.Map;
 
-public class OutputDependEncoding {
+public class EncodingData {
     private final double[] freqStatistic;
     private final Map<Byte, Character> display;
 
-    public OutputDependEncoding(double[] freqStatistic, Map<Byte, Character> display) {
+    public EncodingData(double[] freqStatistic, Map<Byte, Character> display) {
         this.freqStatistic = freqStatistic;
         this.display = display;
     }

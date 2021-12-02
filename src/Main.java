@@ -1,12 +1,11 @@
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.OpenOption;
 import java.nio.file.Paths;
 import java.util.*;
 
 public class Main {
-    static double[] freq = new double[65];
+    static final double[] freq = new double[65];
 
     public static void main(String[] args) {
         Scanner scan = new Scanner(System.in);
@@ -35,8 +34,7 @@ public class Main {
             freq[i] = scan.nextDouble();
         }
 
-        // Generate byte frequency for each encoding table
-        HashMap<String, OutputDependEncoding> freqByEncoding = new HashMap<>();
+        Map<String, EncodingData> freqByEncoding = new HashMap<>();
         try {
             scan = new Scanner(new File("codes"));
         } catch (FileNotFoundException e) {
@@ -44,9 +42,16 @@ public class Main {
             return;
         }
 
+        // Read all available encoding file names
+        Set<String> codes = new HashSet<>(15);
+
         while (scan.hasNext()) {
-            String code = scan.nextLine();
-            OutputDependEncoding tableFreq;
+            codes.add(scan.nextLine());
+        }
+
+        // Generate byte frequency for each encoding table
+        for (String code : codes) {
+            EncodingData tableFreq;
 
             try {
                 tableFreq = getFreqForEncoding(code);
@@ -57,7 +62,6 @@ public class Main {
 
             freqByEncoding.put(code, tableFreq);
         }
-
 
         // [128; 255]
         double[] textStatistic = getByteStatistics(text);
@@ -88,7 +92,7 @@ public class Main {
     }
 
     private static void saveResultToFile(String result) {
-        File decodedTextFile = new File("decodedText");
+        File decodedTextFile = new File("DecodedText");
         try {
             decodedTextFile.createNewFile();
             Files.write(decodedTextFile.toPath(), result.getBytes(StandardCharsets.UTF_8));
@@ -129,18 +133,16 @@ public class Main {
         return frequency;
     }
 
-    private static String[] countDiffAndGetEncodingName(double[] textStatistic, HashMap<String, OutputDependEncoding> freqByEncoding) {
+    private static String[] countDiffAndGetEncodingName(double[] textStatistic, Map<String, EncodingData> freqByEncoding) {
         double firstMin = Double.MAX_VALUE, secondMin = Double.MAX_VALUE, thirdMin = Double.MAX_VALUE;
         String[] names = new String[3];
 
-        for (Map.Entry<String, OutputDependEncoding> codes : freqByEncoding.entrySet()) {
+        for (Map.Entry<String, EncodingData> codes : freqByEncoding.entrySet()) {
             double res = 0;
 
             for (int i = 0; i < textStatistic.length; i++) {
                 res += Math.pow(Math.abs(codes.getValue().getAbcTable()[i] - textStatistic[i]), 2);
             }
-
-            System.out.println(codes.getKey() + " : " + res);
 
             if (res <= firstMin) {
                 thirdMin = secondMin;
@@ -154,7 +156,7 @@ public class Main {
                 names[2] = names[1];
                 secondMin = res;
                 names[1] = codes.getKey();
-            } else if (res <= thirdMin){
+            } else if (res <= thirdMin) {
                 thirdMin = res;
                 names[2] = codes.getKey();
             }
@@ -182,7 +184,7 @@ public class Main {
         return textStatistic;
     }
 
-    private static OutputDependEncoding getFreqForEncoding(String encodingFileName) throws IOException {
+    private static EncodingData getFreqForEncoding(String encodingFileName) throws IOException {
         byte[] abcTable = Files.readAllBytes(Paths.get(encodingFileName));
         double[] freqStatistic = new double[128];
         Map<Byte, Character> display = new HashMap<>(65);
@@ -195,6 +197,6 @@ public class Main {
             }
         }
 
-        return new OutputDependEncoding(freqStatistic, display);
+        return new EncodingData(freqStatistic, display);
     }
 }
