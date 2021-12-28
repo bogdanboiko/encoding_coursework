@@ -8,19 +8,7 @@ public class Main {
     static final double[] freq = new double[65];
 
     public static void main(String[] args) {
-        Scanner scan = new Scanner(System.in);
-        System.out.println("Put in your text file path: ");
-        File userText = new File(scan.nextLine());
-
-        // [-128; 128]
-        byte[] text;
-
-        try {
-            text = Files.readAllBytes(userText.toPath());
-        } catch (IOException e) {
-            System.out.println("Can't find or get access to file " + userText.getPath());
-            return;
-        }
+        Scanner scan;
 
         // Generate custom frequency file frequency from frequencyExampleText
         try {
@@ -30,11 +18,28 @@ public class Main {
             return;
         }
 
+        // fetch generated frequency from file "frequency"
         for (int i = 0; scan.hasNext(); i++) {
             freq[i] = scan.nextDouble();
         }
 
-        Map<String, EncodingData> freqByEncoding = new HashMap<>();
+        scan = new Scanner(System.in);
+        System.out.println("Put in your text file path: ");
+        File userText = new File(scan.nextLine());
+
+        // Count user text frequency
+        byte[] text;
+
+        try {
+            text = Files.readAllBytes(userText.toPath());
+        } catch (IOException e) {
+            System.out.println("Can't find or get access to file " + userText.getPath());
+            return;
+        }
+
+        double[] textStatistic = getByteStatistics(text);
+
+        // Read all available encoding file names
         try {
             scan = new Scanner(new File("codes"));
         } catch (FileNotFoundException e) {
@@ -42,7 +47,6 @@ public class Main {
             return;
         }
 
-        // Read all available encoding file names
         Set<String> codes = new HashSet<>(15);
 
         while (scan.hasNext()) {
@@ -50,6 +54,8 @@ public class Main {
         }
 
         // Generate byte frequency for each encoding table
+        Map<String, EncodingData> freqByEncoding = new HashMap<>();
+
         for (String code : codes) {
             EncodingData tableFreq;
 
@@ -62,9 +68,6 @@ public class Main {
 
             freqByEncoding.put(code, tableFreq);
         }
-
-        // [128; 255]
-        double[] textStatistic = getByteStatistics(text);
 
         // Gets source text encoding name
         String[] codeNames = countDiffAndGetEncodingName(textStatistic, freqByEncoding);
