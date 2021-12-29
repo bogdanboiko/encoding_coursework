@@ -41,7 +41,7 @@ public class Main {
 
         // Read all available encoding file names
         try {
-            scan = new Scanner(new File("codes"));
+            scan = new Scanner(new File("codes/codes"));
         } catch (FileNotFoundException e) {
             System.out.println("Can't find or read file with encodings names");
             return;
@@ -137,7 +137,9 @@ public class Main {
     }
 
     private static String[] countDiffAndGetEncodingName(double[] textStatistic, Map<String, EncodingData> freqByEncoding) {
-        double firstMin = Double.MAX_VALUE, secondMin = Double.MAX_VALUE, thirdMin = Double.MAX_VALUE;
+        double firstMin = Double.MAX_VALUE,
+                secondMin = Double.MAX_VALUE,
+                thirdMin = Double.MAX_VALUE;
         String[] names = new String[3];
 
         for (Map.Entry<String, EncodingData> codes : freqByEncoding.entrySet()) {
@@ -164,7 +166,6 @@ public class Main {
                 names[2] = codes.getKey();
             }
         }
-
         return names;
     }
 
@@ -188,7 +189,7 @@ public class Main {
     }
 
     private static EncodingData getFreqForEncoding(String encodingFileName) throws IOException {
-        byte[] abcTable = Files.readAllBytes(Paths.get(encodingFileName));
+        byte[] abcTable = Files.readAllBytes(Paths.get("encodings/" + encodingFileName));
         double[] freqStatistic = new double[128];
         Map<Byte, Character> display = new HashMap<>(65);
         String abc = "ҐЄЇІіґєїАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЮЯабвгдежзийклмнопрстуфхцчшщьюя";
